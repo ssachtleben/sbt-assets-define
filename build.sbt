@@ -34,7 +34,7 @@ addSbtPlugin("com.typesafe.sbt" % "sbt-js-engine" % "1.0.0")
 
 addSbtPlugin("com.typesafe.sbt" % "sbt-coffeescript" % "1.0.0")
 
-addSbtPlugin("com.ssachtleben" % "sbt-handlebars" % "1.0.0-SNAPSHOT")
+addSbtPlugin("com.ssachtleben" % "sbt-assets-handlebars" % "1.0.0-SNAPSHOT")
 
 scriptedSettings
 
