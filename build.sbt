@@ -4,7 +4,7 @@ organization := "com.ssachtleben"
 
 name := """sbt-assets-define"""
 
-version := "1.0.0-SNAPSHOT"
+version := "1.0.0"
 
 scalaVersion := "2.10.4"
 
@@ -34,7 +34,7 @@ addSbtPlugin("com.typesafe.sbt" % "sbt-js-engine" % "1.0.0")
 
 addSbtPlugin("com.typesafe.sbt" % "sbt-coffeescript" % "1.0.0")
 
-addSbtPlugin("com.ssachtleben" % "sbt-assets-handlebars" % "1.0.0-SNAPSHOT")
+addSbtPlugin("com.ssachtleben" % "sbt-assets-handlebars" % "1.0.0")
 
 scriptedSettings
 
