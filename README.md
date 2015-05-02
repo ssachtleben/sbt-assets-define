@@ -10,4 +10,4 @@ Add the dependency in your project's `plugins.sbt` file:
 
 See this plugin in action [here](https://github.com/ssachtleben/sbt-assets-example).
 
-&copy; Sebastian Sachtleben, 2015
+&copy; 2015 Sebastian Sachtleben 
