@@ -11,5 +11,3 @@ Add the dependency in your project's `plugins.sbt` file:
 See this plugin in action [here](https://github.com/ssachtleben/sbt-assets-example).
 
 &copy; Sebastian Sachtleben, 2015
-
-Check: https://github.com/sbt/sbt-web/blob/master/src/main/scala/com/typesafe/sbt/web/SbtWeb.scala
