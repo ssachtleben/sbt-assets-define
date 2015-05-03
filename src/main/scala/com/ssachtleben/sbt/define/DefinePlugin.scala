@@ -134,7 +134,7 @@ object DefinePlugin extends sbt.AutoPlugin {
     items.foreach { path =>
       val matchedFile = mappings.filter(f => f._2.equals(path)).head
       val paths = List.fromArray(path.split(Pattern.quote(File.separator)))
-      val isHandlebar = matchedFile._1.getAbsolutePath().indexOf("handlebars") > -1
+      val isHandlebar = matchedFile._1.getAbsolutePath().indexOf("handlebars" + File.separator) > -1
       val defineName = paths.drop(2).mkString("/").dropRight(FilenameUtils.getExtension(path).length() + 1)     
       val fileContent = IO.read(matchedFile._1)
       if (StringUtils.isNotBlank(fileContent) && !fileContent.trim().startsWith("define")) {
