@@ -4,7 +4,7 @@ organization := "com.ssachtleben"
 
 name := """sbt-assets-define"""
 
-version := "1.0.1-SNAPSHOT"
+version := "1.0.1"
 
 scalaVersion := "2.10.4"
 
