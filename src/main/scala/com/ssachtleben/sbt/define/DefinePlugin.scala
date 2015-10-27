@@ -52,8 +52,9 @@ object DefinePlugin extends sbt.AutoPlugin {
 
   private def checkFolder(logger: Logger, inputfolders: Seq[java.io.File], outputfolder: java.io.File, files: PathFinder, mappings: Seq[PathMapping]) : Seq[PathMapping] = {
     var reducedMappings = Seq.empty[PathMapping]
-    val items = files.pair(relativeTo(inputfolders) | flat).toMap.values
-    //logger.info("Define updating " + items.size + " source(s)")
+    val reducedFiles = files.filter(f => f.isFile)
+    val items = reducedFiles.pair(relativeTo(inputfolders) | flat).toMap.values
+    logger.info("Define updating " + items.size + " source(s)")
     items.foreach { path =>
       val matchedFile = mappings.filter(f => f._2.equals(path)).head
       val paths = List.fromArray(path.split(Pattern.quote(File.separator)))
@@ -62,7 +63,11 @@ object DefinePlugin extends sbt.AutoPlugin {
       val fileContent = IO.read(matchedFile._1)
       if (StringUtils.isNotBlank(fileContent) && !fileContent.trim().startsWith("define")) {
         logger.info("Define " + defineName + " -> " + matchedFile._1.getAbsolutePath())
-        IO.write(new java.io.File(outputfolder, path), "define(\"" + defineName + "\", function() { " + (if(isHandlebar) "return " else "") + fileContent.trim() + " });")
+        if (StringUtils.isNotBlank(defineName)) {
+            IO.write(new java.io.File(outputfolder, path), "define(\"" + defineName + "\", function() { " + (if(isHandlebar) "return " else "") + fileContent.trim() + " });")
+        } else {
+            IO.write(new java.io.File(outputfolder, path), fileContent.trim())
+        }
         reducedMappings = reducedMappings ++ Seq.apply(matchedFile);
       }
     }
@@ -76,7 +81,8 @@ object DefinePlugin extends sbt.AutoPlugin {
     }
     var reducedMappings = Seq.empty[PathMapping]
     val inputFolders = Seq.apply((resourceManaged in coffeescript in Assets).value) ++ Seq.apply((resourceManaged in handlebars in Assets).value)
-    reducedMappings = reducedMappings ++ checkFolder(streams.value.log, inputFolders, outputfolder, files.value, mappings)
+    val inputFiles = (files.value ** ((includeFilter in define in Assets).value -- (excludeFilter in define in Assets).value)).get
+    reducedMappings = reducedMappings ++ checkFolder(streams.value.log, inputFolders, outputfolder, inputFiles, mappings)
     val compiled = outputfolder.***.get.filter(f => f.isFile && f.getAbsolutePath.startsWith(outputfolder.getAbsolutePath)).pair(relativeTo(outputfolder))
     (mappings.toSet -- reducedMappings.toSet ++ compiled.toSet).toSeq
   }
