@@ -53,9 +53,11 @@ object DefinePlugin extends sbt.AutoPlugin {
   private def checkFolder(logger: Logger, inputfolders: Seq[java.io.File], outputfolder: java.io.File, files: PathFinder, mappings: Seq[PathMapping]) : Seq[PathMapping] = {
     var reducedMappings = Seq.empty[PathMapping]
     val items = files.pair(relativeTo(inputfolders) | flat).toMap.values
-    //logger.info("Define updating " + items.size + " source(s)")
+
+    //logger.info("Define updating " + items.size + " source(s)"
+
     items.foreach { path =>
-      val matchedFile = mappings.filter(f => f._2.equals(path)).head
+      val matchedFile = mappings.filter(f => f._2.equals(path) && includeFilter.value.accept(f._1) && !excludeFilter.value.accept(f._1)).head
       val paths = List.fromArray(path.split(Pattern.quote(File.separator)))
       val isHandlebar = matchedFile._1.getAbsolutePath().indexOf("handlebars" + File.separator) > -1
       val defineName = paths.drop(2).mkString("/").dropRight(FilenameUtils.getExtension(path).length() + 1)     
