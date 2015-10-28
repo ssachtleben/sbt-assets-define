@@ -62,7 +62,7 @@ object DefinePlugin extends sbt.AutoPlugin {
       val defineName = paths.drop(2).mkString("/").dropRight(FilenameUtils.getExtension(path).length() + 1)     
       val fileContent = IO.read(matchedFile._1)
       if (StringUtils.isNotBlank(fileContent) && !fileContent.trim().startsWith("define")) {
-        logger.info("Define " + defineName + " -> " + matchedFile._1.getAbsolutePath())
+        //logger.info("Define " + defineName + " -> " + matchedFile._1.getAbsolutePath())
         if (StringUtils.isNotBlank(defineName)) {
             IO.write(new java.io.File(outputfolder, path), "define(\"" + defineName + "\", function() { " + (if(isHandlebar) "return " else "") + fileContent.trim() + " });")
         } else {
