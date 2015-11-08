@@ -1,20 +1,16 @@
 package com.ssachtleben.sbt.define
 
-import com.typesafe.sbt.coffeescript.Import.CoffeeScriptKeys.coffeescript
-import com.ssachtleben.sbt.handlebars.Import.HandlebarsKeys.handlebars
-import com.typesafe.sbt.web.SbtWeb
-import com.typesafe.sbt.web.Import._
-import com.typesafe.sbt.web.pipeline.Pipeline
-import com.typesafe.sbt.web.PathMapping
-import collection.mutable
-import mutable.ListBuffer
 import java.io.File
 import java.util.regex.Pattern
+
+import com.ssachtleben.sbt.handlebars.Import.HandlebarsKeys.handlebars
+import com.typesafe.sbt.coffeescript.Import.CoffeeScriptKeys.coffeescript
+import com.typesafe.sbt.web.pipeline.Pipeline
+import com.typesafe.sbt.web.{PathMapping, SbtWeb}
 import org.apache.commons.io.FilenameUtils
 import org.apache.commons.lang3.StringUtils
-
+import sbt.Keys._
 import sbt._
-import Keys._
 
 object Import {
 
@@ -47,37 +43,43 @@ object DefinePlugin extends sbt.AutoPlugin {
     includeFilter in define := "*.js",
     excludeFilter in define := HiddenFileFilter,
     files := (resourceManaged in coffeescript in Assets).value / "javascripts" ** "*.js" +++
-        (resourceManaged in handlebars in Assets).value ** "*.js",
+      (resourceManaged in handlebars in Assets).value ** "*.js",
     define := transformFiles.value)
 
-  private def checkFolder(logger: Logger, inputfolders: Seq[java.io.File], outputfolder: java.io.File, files: PathFinder, mappings: Seq[PathMapping]) : Seq[PathMapping] = {
+  private def checkFolder(logger: Logger, inputfolders: Seq[java.io.File], outputfolder: java.io.File, files: PathFinder, mappings: Seq[PathMapping]): Seq[PathMapping] = {
     var reducedMappings = Seq.empty[PathMapping]
     val reducedFiles = files.filter(f => f.isFile)
     val items = reducedFiles.pair(relativeTo(inputfolders) | flat).toMap.values
     logger.info("Define updating " + items.size + " source(s)")
     items.foreach { path =>
       val matchedFile = mappings.filter(f => f._2.equals(path)).head
-      val paths = List.fromArray(path.split(Pattern.quote(File.separator)))
+      val paths = path.split(Pattern.quote(File.separator)).toList
       val isHandlebar = matchedFile._1.getAbsolutePath().indexOf("handlebars" + File.separator) > -1
-      val defineName = paths.drop(2).mkString("/").dropRight(FilenameUtils.getExtension(path).length() + 1)     
+      val defineName = paths.drop(2).mkString("/").dropRight(FilenameUtils.getExtension(path).length() + 1)
       val fileContent = IO.read(matchedFile._1)
       if (StringUtils.isNotBlank(fileContent) && !fileContent.trim().startsWith("define")) {
-        //logger.info("Define " + defineName + " -> " + matchedFile._1.getAbsolutePath())
-        if (StringUtils.isNotBlank(defineName)) {
-            IO.write(new java.io.File(outputfolder, path), "define(\"" + defineName + "\", function() { " + (if(isHandlebar) "return " else "") + fileContent.trim() + " });")
-        } else {
-            IO.write(new java.io.File(outputfolder, path), fileContent.trim())
+        //  logger.info("Define " + defineName + " -> " + matchedFile._1.getAbsolutePath())
+        val newFile = new java.io.File(outputfolder, path)
+        if (!newFile.exists() || newFile.lastModified() < matchedFile._1.lastModified()) {
+          if (StringUtils.isNotBlank(defineName)) {
+            IO.write(newFile, "define(\"" + defineName + "\", function() { " + (if (isHandlebar) "return " else "") + fileContent.trim() + " });")
+          } else {
+            IO.write(newFile, fileContent.trim())
+          }
         }
         reducedMappings = reducedMappings ++ Seq.apply(matchedFile);
       }
+
     }
     reducedMappings
   }
-    
+
   def transformFiles: Def.Initialize[Task[Pipeline.Stage]] = Def.task { (mappings: Seq[PathMapping]) =>
     val outputfolder = (resourceManaged in define in Assets).value
+
     if (outputfolder.exists() && outputfolder.isDirectory()) {
-      org.apache.commons.io.FileUtils.cleanDirectory(outputfolder);
+      //TODO only clean dir on clean command
+      // org.apache.commons.io.FileUtils.cleanDirectory(outputfolder);
     }
     var reducedMappings = Seq.empty[PathMapping]
     val inputFolders = Seq.apply((resourceManaged in coffeescript in Assets).value) ++ Seq.apply((resourceManaged in handlebars in Assets).value)
