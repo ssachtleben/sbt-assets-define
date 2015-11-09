@@ -1,6 +1,7 @@
 package com.ssachtleben.sbt.define
 
 import java.io.File
+import java.nio.charset.Charset
 import java.util.regex.Pattern
 
 import com.ssachtleben.sbt.handlebars.Import.HandlebarsKeys.handlebars
@@ -29,6 +30,7 @@ object DefinePlugin extends sbt.AutoPlugin {
   override def trigger = AllRequirements
 
   val autoImport = Import
+  val utf8 = Charset.forName("UTF-8")
 
   import SbtWeb.autoImport._
   import WebKeys._
@@ -56,15 +58,15 @@ object DefinePlugin extends sbt.AutoPlugin {
       val paths = path.split(Pattern.quote(File.separator)).toList
       val isHandlebar = matchedFile._1.getAbsolutePath().indexOf("handlebars" + File.separator) > -1
       val defineName = paths.drop(2).mkString("/").dropRight(FilenameUtils.getExtension(path).length() + 1)
-      val fileContent = IO.read(matchedFile._1)
+      val fileContent = IO.read(matchedFile._1, utf8)
       if (StringUtils.isNotBlank(fileContent) && !fileContent.trim().startsWith("define")) {
         //  logger.info("Define " + defineName + " -> " + matchedFile._1.getAbsolutePath())
         val newFile = new java.io.File(outputfolder, path)
         if (!newFile.exists() || newFile.lastModified() < matchedFile._1.lastModified()) {
           if (StringUtils.isNotBlank(defineName)) {
-            IO.write(newFile, "define(\"" + defineName + "\", function() { " + (if (isHandlebar) "return " else "") + fileContent.trim() + " });")
+            IO.write(newFile, "define(\"" + defineName + "\", function() { " + (if (isHandlebar) "return " else "") + fileContent.trim() + " });", utf8)
           } else {
-            IO.write(newFile, fileContent.trim())
+            IO.write(newFile, fileContent.trim(), utf8)
           }
         }
         reducedMappings = reducedMappings ++ Seq.apply(matchedFile);
