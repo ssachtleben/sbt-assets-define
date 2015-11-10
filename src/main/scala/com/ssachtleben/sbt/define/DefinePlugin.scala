@@ -13,6 +13,10 @@ import org.apache.commons.lang3.StringUtils
 import sbt.Keys._
 import sbt._
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration._
+
 object Import {
 
   val define = TaskKey[Pipeline.Stage]("coffee-define", "wraps coffee scripts with a define block")
@@ -48,20 +52,27 @@ object DefinePlugin extends sbt.AutoPlugin {
       (resourceManaged in handlebars in Assets).value ** "*.js",
     define := transformFiles.value)
 
+
+
+
   private def checkFolder(logger: Logger, inputfolders: Seq[java.io.File], outputfolder: java.io.File, files: PathFinder, mappings: Seq[PathMapping]): Seq[PathMapping] = {
     var reducedMappings = Seq.empty[PathMapping]
     val reducedFiles = files.filter(f => f.isFile)
     val items = reducedFiles.pair(relativeTo(inputfolders) | flat).toMap.values
+    val block = Boolean.box(true)
     logger.info("Define updating " + items.size + " source(s)")
-    items.foreach { path =>
-      val matchedFile = mappings.filter(f => f._2.equals(path)).head
-      val paths = path.split(Pattern.quote(File.separator)).toList
+
+
+    val futures = reducedFiles.pair(relativeTo(inputfolders) | flat).map((tuple: (sbt.File, String)) => Future {
+      val matchedFile = mappings.filter(f => f._2.equals(tuple._2)).head
+      val paths = tuple._2.split(Pattern.quote(File.separator)).toList
       val isHandlebar = matchedFile._1.getAbsolutePath().indexOf("handlebars" + File.separator) > -1
-      val defineName = paths.drop(2).mkString("/").dropRight(FilenameUtils.getExtension(path).length() + 1)
+      val defineName = paths.drop(2).mkString("/").dropRight(FilenameUtils.getExtension(tuple._2).length() + 1)
       val fileContent = IO.read(matchedFile._1, utf8)
+
       if (StringUtils.isNotBlank(fileContent) && !fileContent.trim().startsWith("define")) {
         //  logger.info("Define " + defineName + " -> " + matchedFile._1.getAbsolutePath())
-        val newFile = new java.io.File(outputfolder, path)
+        val newFile = new java.io.File(outputfolder, tuple._2)
         if (!newFile.exists() || newFile.lastModified() < matchedFile._1.lastModified()) {
           if (StringUtils.isNotBlank(defineName)) {
             IO.write(newFile, "define(\"" + defineName + "\", function() { " + (if (isHandlebar) "return " else "") + fileContent.trim() + " });", utf8)
@@ -69,10 +80,16 @@ object DefinePlugin extends sbt.AutoPlugin {
             IO.write(newFile, fileContent.trim(), utf8)
           }
         }
-        reducedMappings = reducedMappings ++ Seq.apply(matchedFile);
+        block.synchronized {
+          reducedMappings = reducedMappings ++ Seq.apply(matchedFile);
+        }
       }
+    })
 
-    }
+    logger.info("Define - Wait for Read/Write Completion")
+    Await.ready( Future.sequence(futures), Duration.Inf)
+    logger.info("Define - Done - size of reduced Mapping = " + reducedMappings.size)
+
     reducedMappings
   }
 
